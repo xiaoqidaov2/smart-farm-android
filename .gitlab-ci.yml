@@ -64,9 +64,20 @@ build_android:
     - mkdir -p ~/.buildozer/android/platform
     - ln -sf ${ANDROID_SDK_ROOT}/ndk/21.4.7075529 ~/.buildozer/android/platform/android-ndk-r21e
     
+    # 为 buildozer 创建兼容的 SDK 工具路径
+    - mkdir -p ${ANDROID_SDK_ROOT}/tools/bin
+    - ln -sf ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager ${ANDROID_SDK_ROOT}/tools/bin/sdkmanager
+    - ln -sf ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/avdmanager ${ANDROID_SDK_ROOT}/tools/bin/avdmanager
+    
   script:
     # 设置 buildozer 配置以允许 root 用户
     - export BUILDOZER_WARN_ON_ROOT=0
+    - export ANDROID_SDK_ROOT=/root/android-sdk-linux
+    - export ANDROID_HOME=/root/android-sdk-linux
+    - export ANDROID_NDK_ROOT=/root/android-sdk-linux/ndk/21.4.7075529
+    - export ANDROID_NDK_HOME=/root/android-sdk-linux/ndk/21.4.7075529
+    - export NDK_ROOT=/root/android-sdk-linux/ndk/21.4.7075529
+    - export PATH=$PATH:/root/android-sdk-linux/cmdline-tools/latest/bin:/root/android-sdk-linux/platform-tools:/root/android-sdk-linux/tools/bin
     
     # 构建 APK (自动回答 y 给 root 警告)
     - echo "y" | buildozer android debug
