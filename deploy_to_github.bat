@@ -42,4 +42,4 @@ echo 1. 在 GitHub 项目设置中启用 Pages (Settings Pages)
 echo 2. 创建标签发布版本: git tag v1.0.0 然后 git push origin v1.0.0
 echo 3. 查看构建日志排查问题
 
-pause
+p
