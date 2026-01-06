@@ -10,12 +10,20 @@ variables:
   ANDROID_SDK_TOOLS: "9477386"
   # Python 版本
   PYTHON_VERSION: "3.9"
+  # 避免交互式安装
+  DEBIAN_FRONTEND: "noninteractive"
+  TZ: "Asia/Shanghai"
 
 # 构建 Android APK
 build_android:
   stage: build
   image: ubuntu:20.04
   before_script:
+    # 设置非交互式环境
+    - export DEBIAN_FRONTEND=noninteractive
+    - export TZ=Asia/Shanghai
+    - ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    
     # 安装系统依赖
     - apt-get update -qq
     - apt-get install -y -qq git wget curl unzip python3 python3-pip python3-venv
