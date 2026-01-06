@@ -38,8 +38,8 @@ build_android:
     
     # 安装 Android SDK
     - wget --quiet --output-document=android-sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_TOOLS}_latest.zip
-    - unzip -q android-sdk.zip -d android-sdk-linux
-    - export ANDROID_SDK_ROOT=$PWD/android-sdk-linux
+    - unzip -q android-sdk.zip -d /root/android-sdk-linux
+    - export ANDROID_SDK_ROOT=/root/android-sdk-linux
     - export ANDROID_HOME=$ANDROID_SDK_ROOT
     - export PATH=$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools
     - mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools/latest
@@ -54,9 +54,15 @@ build_android:
     - pip3 install buildozer cython
     - pip3 install -r requirements.txt
     
-    # 安装 NDK
+    # 安装 NDK 并设置环境变量
     - sdkmanager "ndk;21.4.7075529"
     - export ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/21.4.7075529
+    - export ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/21.4.7075529
+    - export NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/21.4.7075529
+    
+    # 创建 buildozer 目录并预设 NDK 路径
+    - mkdir -p ~/.buildozer/android/platform
+    - ln -sf ${ANDROID_SDK_ROOT}/ndk/21.4.7075529 ~/.buildozer/android/platform/android-ndk-r21e
     
   script:
     # 设置 buildozer 配置以允许 root 用户
