@@ -88,7 +88,7 @@ build_android_minimal:
       android.skip_update = True
       EOF
     
-    # 构建
+    # 构建环境检查
     - echo "Starting build..."
     - echo "Environment check:"
     - echo "ANDROID_HOME: $ANDROID_HOME"
@@ -108,7 +108,6 @@ build_android_minimal:
     - |
       if [ ! -f bin/*.apk ]; then
         echo "Trying to bypass AIDL check..."
-        # 创建假的 AIDL 文件
         mkdir -p ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/
         echo '#!/bin/bash' > ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
         echo 'echo "AIDL bypassed"' >> ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
