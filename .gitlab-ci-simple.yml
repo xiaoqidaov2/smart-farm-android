@@ -1,0 +1,56 @@
+# 简化版 GitLab CI/CD 配置 - 专注于成功构建
+stages:
+  - build
+
+variables:
+  ANDROID_COMPILE_SDK: "33"
+  ANDROID_BUILD_TOOLS: "33.0.0"
+  ANDROID_SDK_TOOLS: "9477386"
+  PYTHON_VERSION: "3.9"
+  DEBIAN_FRONTEND: "noninteractive"
+
+build_android_simple:
+  stage: build
+  image: ubuntu:20.04
+  timeout: 3h
+  
+  before_script:
+    # 基础环境设置
+    - apt-get update -qq && apt-get install -y -qq git wget curl unzip python3 python3-pip openjdk-11-jdk build-essential
+    - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+    
+    # 安装 Android SDK (最小化)
+    - wget -q https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_TOOLS}_latest.zip -O sdk.zip
+    - unzip -q sdk.zip -d /opt/android-sdk
+    - export ANDROID_HOME=/opt/android-sdk
+    - mkdir -p $ANDROID_HOME/cmdline-tools/latest
+    - mv $ANDROID_HOME/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ 2>/dev/null || true
+    - export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+    
+    # 安装必要组件
+    - yes | sdkmanager --licenses >/dev/null 2>&1
+    - sdkmanager "platforms;android-${ANDROID_COMPILE_SDK}" "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;25.2.9519653"
+    
+    # Python 环境
+    - pip3 install --upgrade pip buildozer cython
+    - pip3 install -r requirements.txt
+    
+  script:
+    # 环境变量
+    - export ANDROID_NDK_ROOT=/opt/android-sdk/ndk/25.2.9519653
+    - export BUILDOZER_WARN_ON_ROOT=0
+    
+    # 构建 (单架构，减少时间)
+    - sed -i 's/android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
+    - buildozer android debug
+    
+  artifacts:
+    paths:
+      - bin/*.apk
+    expire_in: 1 week
+    when: always
+    
+  cache:
+    paths:
+      - .buildozer/
+    key: buildozer-cache-v2

@@ -18,6 +18,7 @@ variables:
 build_android:
   stage: build
   image: ubuntu:20.04
+  timeout: 2h
   before_script:
     # 设置非交互式环境
     - export DEBIAN_FRONTEND=noninteractive
@@ -60,7 +61,7 @@ build_android:
     - export ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
     - export NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
     
-    # 创建 buildozer 目录并预设 NDK 路径
+    # 创建 buildozer 缓存目录并预设 NDK 路径
     - mkdir -p ~/.buildozer/android/platform
     - ln -sf ${ANDROID_SDK_ROOT}/ndk/25.2.9519653 ~/.buildozer/android/platform/android-ndk-r25c
     
@@ -79,6 +80,9 @@ build_android:
     - export NDK_ROOT=/root/android-sdk-linux/ndk/25.2.9519653
     - export PATH=$PATH:/root/android-sdk-linux/cmdline-tools/latest/bin:/root/android-sdk-linux/platform-tools:/root/android-sdk-linux/tools/bin
     
+    # 减少构建输出以避免日志截断
+    - export BUILDOZER_LOG_LEVEL=1
+    
     # 确保 NDK 已正确安装
     - ls -la /root/android-sdk-linux/ndk/
     - ls -la /root/android-sdk-linux/ndk/25.2.9519653/ || echo "NDK not found"
@@ -96,8 +100,12 @@ build_android:
     # 设置 buildozer 跳过 NDK 更新检查
     - export BUILDOZER_SKIP_UPDATE=1
     
-    # 构建 APK (自动回答 y 给 root 警告)
-    - echo "y" | buildozer android debug
+    # 构建 APK (减少输出详细程度)
+    - echo "y" | buildozer android debug --verbose
+    
+    # 检查构建结果
+    - ls -la bin/ || echo "No bin directory found"
+    - find . -name "*.apk" -type f || echo "No APK files found"
     
   artifacts:
     paths:
