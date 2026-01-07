@@ -1,0 +1,56 @@
+# 使用专门的 Kivy Docker 镜像
+stages:
+  - build
+
+build_with_kivy_docker:
+  stage: build
+  # 使用社区维护的 Kivy 构建镜像
+  image: kivy/buildozer:latest
+  timeout: 2h
+  
+  variables:
+    BUILDOZER_WARN_ON_ROOT: "0"
+  
+  before_script:
+    # 更新 buildozer 和依赖
+    - pip install --upgrade buildozer cython
+    - pip install kivymd requests
+    
+  script:
+    # 创建简化的 buildozer.spec
+    - |
+      cat > buildozer.spec << 'EOF'
+      [app]
+      title = SmartFarm
+      package.name = smartfarm
+      package.domain = com.smartfarm.app
+      source.dir = .
+      source.include_exts = py,png,jpg,kv,atlas
+      version = 1.0
+      requirements = python3,kivy,kivymd,requests
+      orientation = portrait
+      
+      [buildozer]
+      log_level = 2
+      warn_on_root = 0
+      
+      android.permissions = INTERNET
+      android.api = 33
+      android.minapi = 21
+      android.archs = arm64-v8a
+      android.accept_sdk_license = True
+      EOF
+    
+    # 构建
+    - buildozer android debug
+    
+    # 检查结果
+    - ls -la bin/ || echo "No bin directory"
+    - find . -name "*.apk" -exec ls -lh {} \;
+    
+  artifacts:
+    paths:
+      - bin/*.apk
+      - "*.apk"
+    expire_in: 1 week
+    when: always
