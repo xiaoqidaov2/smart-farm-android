@@ -23,23 +23,37 @@ build_android_minimal:
     - pip3 install --upgrade pip
     - pip3 install buildozer cython kivy kivymd requests
     
-    # 简单的 Android SDK 设置
+    # Android SDK 设置
     - mkdir -p $ANDROID_HOME
     - wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/sdk.zip
     - unzip -q /tmp/sdk.zip -d $ANDROID_HOME
     - mkdir -p $ANDROID_HOME/cmdline-tools/latest
     - mv $ANDROID_HOME/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ 2>/dev/null || true
-    - export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+    - export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
     
     # 预设许可证
     - mkdir -p $ANDROID_HOME/licenses
     - echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
+    - echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
     
-    # 安装必要组件
-    - sdkmanager "platforms;android-33" "build-tools;33.0.0" "ndk;25.2.9519653" || true
+    # 安装 Android 组件
+    - sdkmanager "platforms;android-33" "build-tools;33.0.0" "ndk;25.2.9519653"
+    
+    # 验证安装
+    - ls -la $ANDROID_HOME/build-tools/ || echo "Build tools not found in SDK"
+    - ls -la $ANDROID_HOME/build-tools/33.0.0/ || echo "Build tools 33.0.0 not found"
+    
+    # 为 buildozer 创建符号链接
+    - mkdir -p ~/.buildozer/android/platform/android-sdk
+    - ln -sf $ANDROID_HOME/build-tools ~/.buildozer/android/platform/android-sdk/build-tools
+    - ln -sf $ANDROID_HOME/platforms ~/.buildozer/android/platform/android-sdk/platforms
+    - ln -sf $ANDROID_HOME/ndk ~/.buildozer/android/platform/android-sdk/ndk
+    
+    # 验证 buildozer 路径
+    - ls -la ~/.buildozer/android/platform/android-sdk/build-tools/ || echo "Buildozer build-tools link failed"
     
   script:
-    # 简化 buildozer.spec
+    # 生成优化的 buildozer.spec
     - |
       cat > buildozer.spec << 'EOF'
       [app]
@@ -65,15 +79,29 @@ build_android_minimal:
       android.archs = arm64-v8a
       android.accept_sdk_license = True
       android.private_storage = True
+      android.sdk_path = /opt/android-sdk
+      android.ndk_path = /opt/android-sdk/ndk/25.2.9519653
+      android.skip_update = True
       EOF
     
     # 构建
     - echo "Starting build..."
-    - buildozer android debug || echo "Build failed but continuing..."
+    - echo "Environment check:"
+    - echo "ANDROID_HOME: $ANDROID_HOME"
+    - echo "JAVA_HOME: $JAVA_HOME"
+    - ls -la $ANDROID_HOME/build-tools/33.0.0/ | head -5
+    - buildozer android debug -v
     
-    # 检查结果
-    - ls -la bin/ 2>/dev/null || echo "No bin directory"
-    - find . -name "*.apk" 2>/dev/null || echo "No APK found"
+    # 详细的结果检查
+    - echo "=== Detailed Build Results ==="
+    - echo "Current directory contents:"
+    - ls -la
+    - echo "Bin directory contents:"
+    - ls -la bin/ 2>/dev/null || echo "No bin directory found"
+    - echo "Searching for APK files:"
+    - find . -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null || echo "No APK files found"
+    - echo "Buildozer directory structure:"
+    - find .buildozer -name "*.apk" -type f 2>/dev/null || echo "No APK in buildozer cache"
     
   artifacts:
     paths:
