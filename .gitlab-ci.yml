@@ -79,6 +79,23 @@ build_android:
     - export NDK_ROOT=/root/android-sdk-linux/ndk/25.2.9519653
     - export PATH=$PATH:/root/android-sdk-linux/cmdline-tools/latest/bin:/root/android-sdk-linux/platform-tools:/root/android-sdk-linux/tools/bin
     
+    # 确保 NDK 已正确安装
+    - ls -la /root/android-sdk-linux/ndk/
+    - ls -la /root/android-sdk-linux/ndk/25.2.9519653/ || echo "NDK not found"
+    
+    # 创建 buildozer 缓存目录结构
+    - mkdir -p ~/.buildozer/android/platform
+    - mkdir -p ~/.buildozer/android/packages
+    
+    # 如果 NDK 存在，创建符号链接避免重复下载
+    - if [ -d "/root/android-sdk-linux/ndk/25.2.9519653" ]; then
+        ln -sf /root/android-sdk-linux/ndk/25.2.9519653 ~/.buildozer/android/platform/android-ndk-r25c;
+        echo "NDK symlink created successfully";
+      fi
+    
+    # 设置 buildozer 跳过 NDK 更新检查
+    - export BUILDOZER_SKIP_UPDATE=1
+    
     # 构建 APK (自动回答 y 给 root 警告)
     - echo "y" | buildozer android debug
     
