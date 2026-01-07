@@ -50,9 +50,9 @@ RUN mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools/latest && \
 # 接受许可证并安装 SDK 组件
 RUN yes | sdkmanager --licenses >/dev/null 2>&1 || true && \
     sdkmanager "platforms;android-${ANDROID_COMPILE_SDK}" "build-tools;${ANDROID_BUILD_TOOLS}" && \
-    sdkmanager "ndk;21.4.7075529"
+    sdkmanager "ndk;25.2.9519653"
 
-ENV ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/21.4.7075529
+ENV ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
 
 # 构建命令
 CMD ["buildozer", "android", "debug"]

@@ -55,14 +55,14 @@ build_android:
     - pip3 install -r requirements.txt
     
     # 安装 NDK 并设置环境变量
-    - sdkmanager "ndk;21.4.7075529"
-    - export ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/21.4.7075529
-    - export ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/21.4.7075529
-    - export NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/21.4.7075529
+    - sdkmanager "ndk;25.2.9519653"
+    - export ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
+    - export ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
+    - export NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/25.2.9519653
     
     # 创建 buildozer 目录并预设 NDK 路径
     - mkdir -p ~/.buildozer/android/platform
-    - ln -sf ${ANDROID_SDK_ROOT}/ndk/21.4.7075529 ~/.buildozer/android/platform/android-ndk-r21e
+    - ln -sf ${ANDROID_SDK_ROOT}/ndk/25.2.9519653 ~/.buildozer/android/platform/android-ndk-r25c
     
     # 为 buildozer 创建兼容的 SDK 工具路径
     - mkdir -p ${ANDROID_SDK_ROOT}/tools/bin
@@ -74,9 +74,9 @@ build_android:
     - export BUILDOZER_WARN_ON_ROOT=0
     - export ANDROID_SDK_ROOT=/root/android-sdk-linux
     - export ANDROID_HOME=/root/android-sdk-linux
-    - export ANDROID_NDK_ROOT=/root/android-sdk-linux/ndk/21.4.7075529
-    - export ANDROID_NDK_HOME=/root/android-sdk-linux/ndk/21.4.7075529
-    - export NDK_ROOT=/root/android-sdk-linux/ndk/21.4.7075529
+    - export ANDROID_NDK_ROOT=/root/android-sdk-linux/ndk/25.2.9519653
+    - export ANDROID_NDK_HOME=/root/android-sdk-linux/ndk/25.2.9519653
+    - export NDK_ROOT=/root/android-sdk-linux/ndk/25.2.9519653
     - export PATH=$PATH:/root/android-sdk-linux/cmdline-tools/latest/bin:/root/android-sdk-linux/platform-tools:/root/android-sdk-linux/tools/bin
     
     # 构建 APK (自动回答 y 给 root 警告)
