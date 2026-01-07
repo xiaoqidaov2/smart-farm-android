@@ -1,75 +1,36 @@
-# 最小化 GitLab CI 配置 - 专注于成功构建
+# 使用专门的 Kivy Docker 镜像
 stages:
   - build
 
-build_android_minimal:
+build_with_kivy_docker:
   stage: build
-  image: ubuntu:22.04
+  # 使用官方的 buildozer Docker 镜像
+  image: kivy/buildozer:latest
   timeout: 2h
   
   variables:
-    DEBIAN_FRONTEND: noninteractive
-    ANDROID_HOME: /opt/android-sdk
-    ANDROID_SDK_ROOT: /opt/android-sdk
     BUILDOZER_WARN_ON_ROOT: "0"
   
   before_script:
-    # 基础环境
-    - apt-get update -qq
-    - apt-get install -y -qq python3 python3-pip openjdk-11-jdk wget unzip git build-essential
-    - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-    
-    # 安装 buildozer
-    - pip3 install --upgrade pip
-    - pip3 install buildozer cython kivy kivymd requests
-    
-    # Android SDK 设置
-    - mkdir -p $ANDROID_HOME
-    - wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/sdk.zip
-    - unzip -q /tmp/sdk.zip -d $ANDROID_HOME
-    - mkdir -p $ANDROID_HOME/cmdline-tools/latest
-    - mv $ANDROID_HOME/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ 2>/dev/null || true
-    - export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-    
-    # 预设许可证
-    - mkdir -p $ANDROID_HOME/licenses
-    - echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
-    - echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
-    
-    # 安装 Android 组件
-    - sdkmanager "platforms;android-33" "build-tools;33.0.0" "ndk;25.2.9519653"
-    
-    # 验证安装
-    - ls -la $ANDROID_HOME/build-tools/ || echo "Build tools not found in SDK"
-    - ls -la $ANDROID_HOME/build-tools/33.0.0/ || echo "Build tools 33.0.0 not found"
-    
-    # 为 buildozer 创建完整的 SDK 结构
-    - mkdir -p ~/.buildozer/android/platform/android-sdk
-    - cp -r $ANDROID_HOME/* ~/.buildozer/android/platform/android-sdk/
-    
-    # 验证 buildozer SDK 结构
-    - echo "Buildozer SDK structure:"
-    - ls -la ~/.buildozer/android/platform/android-sdk/
-    - ls -la ~/.buildozer/android/platform/android-sdk/build-tools/ || echo "Build-tools not found"
-    - ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/ || echo "Build-tools 33.0.0 not found"
-    
-    # 确保 AIDL 可执行
-    - chmod +x ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl || echo "AIDL not found to chmod"
+    # 更新系统和 Python 包
+    - apt-get update -qq || true
+    - pip install --upgrade pip || true
+    - pip install --upgrade buildozer cython || true
+    - pip install kivymd requests || true
     
   script:
-    # 生成优化的 buildozer.spec
+    # 创建简化的 buildozer.spec
     - |
       cat > buildozer.spec << 'EOF'
       [app]
-      title = 智慧农场
+      title = SmartFarm
       package.name = smartfarm
       package.domain = com.smartfarm.app
       source.dir = .
-      source.include_exts = py,png,jpg,kv,atlas,ttf,otf
+      source.include_exts = py,png,jpg,kv,atlas
       version = 1.0
       requirements = python3,kivy,kivymd,requests
       orientation = portrait
-      fullscreen = 0
       
       [buildozer]
       log_level = 2
@@ -78,53 +39,25 @@ build_android_minimal:
       android.permissions = INTERNET,ACCESS_NETWORK_STATE
       android.api = 33
       android.minapi = 21
-      android.ndk = 25.2.9519653
-      android.sdk = 33
       android.archs = arm64-v8a
       android.accept_sdk_license = True
-      android.private_storage = True
-      android.sdk_path = /opt/android-sdk
-      android.ndk_path = /opt/android-sdk/ndk/25.2.9519653
-      android.skip_update = True
       EOF
     
-    # 构建环境检查
-    - echo "Starting build..."
-    - echo "Environment check:"
-    - echo "ANDROID_HOME: $ANDROID_HOME"
-    - echo "JAVA_HOME: $JAVA_HOME"
-    - echo "Buildozer SDK check:"
-    - ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/ | head -5 || echo "Build tools not accessible"
+    # 显示环境信息
+    - echo "=== Environment Information ==="
+    - echo "Buildozer version: $(buildozer --version)"
+    - echo "Python version: $(python3 --version)"
+    - echo "Android SDK: $ANDROID_SDK_ROOT"
+    - echo "Android NDK: $ANDROID_NDK_ROOT"
     
-    # 设置额外的环境变量
-    - export ANDROID_SDK_ROOT=$ANDROID_HOME
-    - export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/25.2.9519653
-    - export PATH=$PATH:$ANDROID_HOME/build-tools/33.0.0
+    # 构建 APK
+    - echo "=== Starting APK Build ==="
+    - buildozer android debug -v
     
-    # 尝试构建
-    - buildozer android debug -v || echo "Build failed, trying alternative approach..."
-    
-    # 如果失败，尝试强制跳过检查
-    - |
-      if [ ! -f bin/*.apk ]; then
-        echo "Trying to bypass AIDL check..."
-        mkdir -p ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/
-        echo '#!/bin/bash' > ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
-        echo 'echo "AIDL bypassed"' >> ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
-        chmod +x ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
-        buildozer android debug -v || echo "Second attempt also failed"
-      fi
-    
-    # 详细的结果检查
-    - echo "=== Detailed Build Results ==="
-    - echo "Current directory contents:"
-    - ls -la
-    - echo "Bin directory contents:"
-    - ls -la bin/ 2>/dev/null || echo "No bin directory found"
-    - echo "Searching for APK files:"
-    - find . -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null || echo "No APK files found"
-    - echo "Buildozer directory structure:"
-    - find .buildozer -name "*.apk" -type f 2>/dev/null || echo "No APK in buildozer cache"
+    # 检查构建结果
+    - echo "=== Build Results ==="
+    - ls -la bin/ || echo "No bin directory"
+    - find . -name "*.apk" -exec ls -lh {} \; || echo "No APK found"
     
   artifacts:
     paths:
@@ -136,3 +69,4 @@ build_android_minimal:
   cache:
     paths:
       - .buildozer/
+    key: kivy-docker-cache-v1
