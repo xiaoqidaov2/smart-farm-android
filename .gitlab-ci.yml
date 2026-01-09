@@ -1,72 +1,81 @@
-# 使用专门的 Kivy Docker 镜像
-stages:
-  - build
+# GitLab CI/CD 配置文件 for Kivy 移动应用打包
 
-build_with_kivy_docker:
-  stage: build
-  # 使用官方的 buildozer Docker 镜像
-  image: kivy/buildozer:latest
-  timeout: 2h
-  
-  variables:
-    BUILDOZER_WARN_ON_ROOT: "0"
-  
+stages:
+  - lint
+  - build
+  - deploy
+
+variables:
+  # 定义变量，方便后续使用
+  ANDROID_BUILD_OUTPUT: "./.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/myapp__armeabi-v7a__arm64-v8a"
+  BUILDOZER_IMAGE: "kivy/buildozer:stable"
+
+# 代码检查作业
+lint:
+  stage: lint
+  image: python:3.12
   before_script:
-    # 更新系统和 Python 包
-    - apt-get update -qq || true
-    - pip install --upgrade pip || true
-    - pip install --upgrade buildozer cython || true
-    - pip install kivymd requests || true
-    
+    - pip install --upgrade pip
+    - pip install flake8
+    - pip install -r requirements.txt
   script:
-    # 创建简化的 buildozer.spec
-    - |
-      cat > buildozer.spec << 'EOF'
-      [app]
-      title = SmartFarm
-      package.name = smartfarm
-      package.domain = com.smartfarm.app
-      source.dir = .
-      source.include_exts = py,png,jpg,kv,atlas
-      version = 1.0
-      requirements = python3,kivy,kivymd,requests
-      orientation = portrait
-      
-      [buildozer]
-      log_level = 2
-      warn_on_root = 0
-      
-      android.permissions = INTERNET,ACCESS_NETWORK_STATE
-      android.api = 33
-      android.minapi = 21
-      android.archs = arm64-v8a
-      android.accept_sdk_license = True
-      EOF
-    
-    # 显示环境信息
-    - echo "=== Environment Information ==="
-    - echo "Buildozer version: $(buildozer --version)"
-    - echo "Python version: $(python3 --version)"
-    - echo "Android SDK: $ANDROID_SDK_ROOT"
-    - echo "Android NDK: $ANDROID_NDK_ROOT"
-    
-    # 构建 APK
-    - echo "=== Starting APK Build ==="
-    - buildozer android debug -v
-    
-    # 检查构建结果
-    - echo "=== Build Results ==="
-    - ls -la bin/ || echo "No bin directory"
-    - find . -name "*.apk" -exec ls -lh {} \; || echo "No APK found"
-    
+    - flake8 --ignore=E501,W503 *.py
+  only:
+    - branches
+
+# Android 构建作业
+android-build:
+  stage: build
+  image: $BUILDOZER_IMAGE
+  before_script:
+    # 安装项目依赖
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    # 初始化 Buildozer 环境
+    - buildozer init
+  script:
+    # 使用 Buildozer 构建 Android 应用
+    - buildozer -v android debug
   artifacts:
     paths:
-      - bin/*.apk
-      - "*.apk"
+      # 保存构建产物
+      - $ANDROID_BUILD_OUTPUT/myapp-0.1-armeabi-v7a-debug.apk
+      - $ANDROID_BUILD_OUTPUT/myapp-0.1-arm64-v8a-debug.apk
     expire_in: 1 week
-    when: always
-    
-  cache:
+  only:
+    - main
+    - tags
+  tags:
+    - docker
+
+# Android 发布构建作业（仅在标签推送时运行）
+android-release:
+  stage: build
+  image: $BUILDOZER_IMAGE
+  before_script:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - buildozer init
+  script:
+    # 使用 Buildozer 构建 Android 发布版本
+    - buildozer -v android release
+  artifacts:
     paths:
-      - .buildozer/
-    key: kivy-docker-cache-v1
+      - $ANDROID_BUILD_OUTPUT/myapp-0.1-armeabi-v7a-release.apk
+      - $ANDROID_BUILD_OUTPUT/myapp-0.1-arm64-v8a-release.apk
+    expire_in: 4 weeks
+  only:
+    - tags
+  tags:
+    - docker
+
+# 部署作业示例（可根据实际需求修改）
+deploy:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "部署应用到指定平台"
+    # 这里可以添加实际的部署命令，例如上传到应用商店或内部服务器
+  only:
+    - tags
+  when: manual

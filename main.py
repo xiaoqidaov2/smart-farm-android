@@ -47,7 +47,7 @@ SENSORS_MAP = {
 
 ACTUATORS_MAP = {
     "fun": {"name": "风扇", "icon": "fan"},
-    "LVD": {"name": "绿灯", "icon": "lightbulb"},
+    "bacjingd1": {"name": "报警灯", "icon": "alert-circle"},
 }
 
 class LoginScreen(MDScreen):
